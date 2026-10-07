@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('거래 내역')}"></head>
+<body>
+<div class="app narrow">
+    <header th:replace="~{fragments/layout :: appBar('거래 내역', '/my')}"></header>
+
+    <div class="tabs" role="tablist">
+        <a role="tab" th:href="@{/my/trades(tab='sell')}" th:classappend="${tab == 'sell'} ? 'on'" th:attr="aria-selected=${tab == 'sell'}">판매 내역</a>
+        <a role="tab" th:href="@{/my/trades(tab='buy')}" th:classappend="${tab == 'buy'} ? 'on'" th:attr="aria-selected=${tab == 'buy'}">구매 내역</a>
+    </div>
+
+    <div class="scroller filters">
+        <a class="chip" th:classappend="${filter == 'all'} ? 'on'" th:href="@{/my/trades(tab=${tab}, filter='all')}">전체</a>
+        <a class="chip" th:classappend="${filter == 'ongoing'} ? 'on'" th:href="@{/my/trades(tab=${tab}, filter='ongoing')}">진행 중</a>
+        <a class="chip" th:classappend="${filter == 'done'} ? 'on'" th:href="@{/my/trades(tab=${tab}, filter='done')}">완료</a>
+    </div>
+
+    <ul class="list">
+        <li th:each="r : ${rows}">
+            <a class="trade-row" th:href="@{/products/{id}(id=${r.productId()})}" th:classappend="${r.status().name() == 'SOLD_OUT'} ? 'done'">
+                <span class="thumb">
+                    <img th:if="${thumbs.get(r.productId()) != null}" th:src="@{/uploads/{f}(f=${thumbs.get(r.productId())})}" alt="">
+                    <span th:if="${thumbs.get(r.productId()) == null}" aria-hidden="true" th:text="${categoryIcons[r.category().name()]}">📦</span>
+                </span>
+                <span class="trade-main">
+                    <b th:text="${r.title()}">상품명</b>
+                    <span class="price-sm" th:text="${#numbers.formatInteger(r.price(), 0, 'COMMA') + '원'}">0원</span>
+                    <small>
+                        <span th:text="${tab == 'sell' ? r.peer() : '판매자 ' + r.peer()}">상대</span>
+                        · 등록 <span th:text="${#temporals.format(r.date(), 'yyyy.MM.dd')}">2026.10.01</span>
+                    </small>
+                </span>
+                <span class="status" th:classappend="${r.status().name() == 'SALE'} ? 'sale' : (${r.status().name() == 'RESERVED'} ? 'reserved' : 'sold')"
+                      th:text="${r.status().name() == 'SALE'} ? '판매중' : (${r.status().name() == 'RESERVED'} ? '예약중' : '거래완료')">판매중</span>
+            </a>
+        </li>
+    </ul>
+    <p class="empty" th:if="${rows.isEmpty()}"
+       th:text="${tab == 'sell'} ? '판매 내역이 없어요.' : '구매 내역이 없어요. 마음에 드는 상품에서 채팅을 시작해 보세요.'">내역이 없어요.</p>
+
+    <nav th:replace="~{fragments/layout :: bottomNav('my')}"></nav>
+</div>
+</body>
+</html>

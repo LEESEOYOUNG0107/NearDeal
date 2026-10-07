@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('회원가입')}"></head>
+<body>
+<main class="auth">
+    <div class="auth-brand">
+        <span class="logo-mark" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        </span>
+        <h1>NearDeal 시작하기</h1>
+        <p>이웃과 가까이 거래할 준비를 해요</p>
+    </div>
+
+    <form class="auth-form" th:action="@{/signup}" method="post">
+        <p class="form-error" role="alert" th:if="${error}" th:text="${error}">오류</p>
+
+        <div class="field">
+            <label for="email">이메일</label>
+            <input class="input" id="email" name="email" type="email" autocomplete="email" maxlength="100" th:value="${email}" placeholder="example@email.com" required autofocus>
+        </div>
+        <div class="field">
+            <label for="nickname">닉네임</label>
+            <input class="input" id="nickname" name="nickname" minlength="2" maxlength="20" autocomplete="nickname" th:value="${nickname}" placeholder="이웃에게 보여질 이름 (2~20자)" required>
+        </div>
+        <div class="field">
+            <label for="password">비밀번호</label>
+            <input class="input" id="password" name="password" type="password" minlength="8" maxlength="64" autocomplete="new-password" placeholder="8자 이상" required>
+        </div>
+        <div class="field">
+            <label for="passwordConfirm">비밀번호 확인</label>
+            <input class="input" id="passwordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" placeholder="비밀번호를 한 번 더 입력" required>
+        </div>
+        <button type="submit" class="btn primary block">가입하고 시작하기</button>
+    </form>
+
+    <p class="auth-switch">이미 계정이 있나요? <a th:href="@{/login}">로그인</a></p>
+</main>
+</body>
+</html>

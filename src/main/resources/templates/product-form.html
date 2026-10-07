@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('내 물건 팔기')}"></head>
+<body>
+<div class="app narrow">
+    <header th:replace="~{fragments/layout :: appBar('내 물건 팔기', '/')}"></header>
+
+    <form id="sellForm" class="form" th:action="@{/products}" method="post" enctype="multipart/form-data">
+        <p class="form-error" role="alert" th:if="${error}" th:text="${error}">오류</p>
+
+        <div class="field">
+            <span class="label" id="photoLabel">상품 사진 <small id="photoCount">0/10</small></span>
+            <div class="photos" id="photos" aria-labelledby="photoLabel">
+                <label class="photo-add" for="images">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+                    <span>사진 추가</span>
+                </label>
+            </div>
+            <input id="images" name="images" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+            <p class="hint" id="photoHint">첫 번째 사진이 대표 사진이에요. 한 장당 5MB 이하, 최대 10장까지 올릴 수 있어요.</p>
+        </div>
+
+        <div class="field">
+            <label for="title">제목</label>
+            <input class="input" id="title" name="title" maxlength="100" placeholder="상품명을 입력해 주세요" th:value="${title}" required>
+        </div>
+
+        <div class="field">
+            <label for="category">카테고리</label>
+            <select class="input" id="category" name="category" required>
+                <option th:each="c : ${categories}" th:value="${c}" th:text="${categoryLabels[c.name()]}" th:selected="${selectedCategory == c}"></option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label for="price">가격</label>
+            <div class="input-wrap">
+                <input class="input" id="price" name="price" type="number" inputmode="numeric" min="1" placeholder="0" th:value="${price}" required>
+                <span class="suffix">원</span>
+            </div>
+        </div>
+
+        <div class="field">
+            <span class="label" id="condLabel">상품 상태</span>
+            <div class="chips" role="radiogroup" aria-labelledby="condLabel">
+                <label class="choice"><input type="radio" name="condition" value="새상품"><span>새상품</span></label>
+                <label class="choice"><input type="radio" name="condition" value="거의 새것" checked><span>거의 새것</span></label>
+                <label class="choice"><input type="radio" name="condition" value="사용감 있음"><span>사용감 있음</span></label>
+                <label class="choice"><input type="radio" name="condition" value="많이 사용"><span>많이 사용</span></label>
+            </div>
+            <p class="hint">상태는 AI 설명 도우미에 전달돼요. (게시글에는 설명으로 함께 적어 주세요)</p>
+        </div>
+
+        <div class="field">
+            <label for="region">거래 희망 장소</label>
+            <input class="input" id="region" name="region" maxlength="50" placeholder="예) 성수동" th:value="${region != null} ? ${region} : ${activeRegion}" required>
+        </div>
+
+        <div class="field">
+            <label for="description">자세한 설명</label>
+            <button type="button" class="ai-row" id="openAi">
+                <svg class="icon sm" viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><path d="M12 2l2.2 6.3L21 10.5l-6.8 2.2L12 20l-2.2-7.3L3 10.5l6.8-2.2z"/></svg>
+                <span>AI로 설명 쓰기 <small>(선택)</small></span>
+                <svg class="icon sm" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <textarea class="input" id="description" name="description" rows="7" placeholder="상품의 상태, 구매 시기, 거래 방법 등을 적어 주세요" th:text="${description}" required></textarea>
+        </div>
+
+        <div class="sticky-bar"><button type="submit" class="btn primary block">등록하기</button></div>
+    </form>
+</div>
+
+<!-- AI 설명 도우미: 초안은 반드시 확인/수정 후 '적용하기'로 반영 -->
+<dialog id="aiDialog" class="sheet" aria-labelledby="aiTitle">
+    <div class="sheet-head">
+        <h2 id="aiTitle">설명 도우미</h2>
+        <button type="button" class="icon-btn" id="closeAi" aria-label="닫기">✕</button>
+    </div>
+    <p class="notice"><span class="ai-badge">AI</span> 입력한 정보로 설명 초안을 만들어요. 초안은 꼭 확인하고 고쳐 주세요.</p>
+
+    <div class="field"><label for="aiName">상품명</label><input class="input" id="aiName" maxlength="100"></div>
+    <div class="field"><label for="aiCond">상품 상태</label><input class="input" id="aiCond" maxlength="100"></div>
+    <div class="field"><label for="aiFeat">특징</label><input class="input" id="aiFeat" maxlength="1000" placeholder="64GB / 스페이스그레이 / 박스 있음"></div>
+    <div class="field"><label for="aiExtra">추가 정보 (선택)</label><textarea class="input" id="aiExtra" rows="2" maxlength="1000" placeholder="사용 기간, 구매처, 흠집 등"></textarea></div>
+    <button type="button" class="btn primary block" id="aiGen">설명 만들기</button>
+    <p class="loading" id="aiLoading" hidden><b></b><b></b><b></b> 작성 중이에요…</p>
+    <p class="toast" id="aiError" role="alert" hidden></p>
+
+    <section id="aiResultBox" hidden>
+        <div class="result-head"><span class="ai-badge">✦ AI 초안</span><span class="hint">직접 고칠 수 있어요</span></div>
+        <textarea class="input" id="aiResult" rows="6"></textarea>
+        <div class="two">
+            <button type="button" class="btn ghost" id="aiRetry">다시 만들기</button>
+            <button type="button" class="btn primary" id="aiApply">적용하기</button>
+        </div>
+    </section>
+</dialog>
+
+<script>
+// 사진 선택: 미리보기, 개별 삭제, 개수/용량 확인. 선택한 파일은 DataTransfer 로 input 에 다시 담아 폼과 함께 전송한다
+(function () {
+    const MAX = 10, MAX_BYTES = 5 * 1024 * 1024;
+    const input = document.getElementById('images');
+    const box = document.getElementById('photos');
+    const count = document.getElementById('photoCount');
+    const hint = document.getElementById('photoHint');
+    const baseHint = hint.textContent;
+    let files = [];
+    let urls = [];
+
+    function sync() {
+        const dt = new DataTransfer();
+        files.forEach((f) => dt.items.add(f));
+        input.files = dt.files;
+    }
+    function render() {
+        urls.forEach((u) => URL.revokeObjectURL(u));
+        urls = [];
+        box.querySelectorAll('.photo-thumb').forEach((n) => n.remove());
+        const add = box.querySelector('.photo-add');
+        files.forEach((f, i) => {
+            const url = URL.createObjectURL(f);
+            urls.push(url);
+            const item = document.createElement('div');
+            item.className = 'photo-thumb';
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = '선택한 사진 ' + (i + 1);
+            item.appendChild(img);
+            if (i === 0) {
+                const tag = document.createElement('span');
+                tag.className = 'cover-tag';
+                tag.textContent = '대표';
+                item.appendChild(tag);
+            }
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'photo-del';
+            del.setAttribute('aria-label', '사진 ' + (i + 1) + ' 삭제');
+            del.textContent = '✕';
+            del.addEventListener('click', () => { files.splice(i, 1); sync(); render(); });
+            item.appendChild(del);
+            box.insertBefore(item, add);
+        });
+        add.hidden = files.length >= MAX;
+        count.textContent = files.length + '/' + MAX;
+    }
+    input.addEventListener('change', () => {
+        let msg = '';
+        for (const f of input.files) {
+            if (files.length >= MAX) { msg = '사진은 최대 ' + MAX + '장까지 올릴 수 있어요.'; break; }
+            if (f.size > MAX_BYTES) { msg = '5MB를 넘는 사진은 제외했어요.'; continue; }
+            files.push(f);
+        }
+        hint.textContent = msg || baseHint;
+        sync();
+        render();
+    });
+})();
+</script>
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const dlg = $('aiDialog');
+    let busy = false;
+
+    $('openAi').addEventListener('click', () => {
+        $('aiName').value = $('title').value;
+        const cond = document.querySelector('input[name=condition]:checked');
+        $('aiCond').value = cond ? cond.value : '';
+        dlg.showModal();
+    });
+    $('closeAi').addEventListener('click', () => dlg.close());
+
+    async function generate() {
+        if (busy) return;
+        if (!$('aiName').value.trim() || !$('aiCond').value.trim()) {
+            return showError('상품명과 상태를 입력해 주세요.');
+        }
+        busy = true;
+        $('aiError').hidden = true;
+        $('aiLoading').hidden = false;
+        $('aiGen').disabled = true;
+        try {
+            const res = await fetch('/ai/description', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    productName: $('aiName').value.trim(),
+                    condition: $('aiCond').value.trim(),
+                    features: $('aiFeat').value.trim(),
+                    extraInfo: $('aiExtra').value.trim()
+                })
+            });
+            // 로그인이 풀리면 로그인 화면(HTML)으로 넘어오므로 따로 안내한다
+            if (res.redirected) throw new Error('로그인이 만료됐어요. 다시 로그인해 주세요.');
+            if (!res.ok) {
+                let msg = '';
+                try { msg = (await res.json()).message || ''; } catch (e) { /* 본문이 JSON 이 아님 */ }
+                throw new Error(msg);
+            }
+            $('aiResult').value = (await res.json()).description;
+            $('aiResultBox').hidden = false;
+        } catch (e) {
+            showError((e.message || '초안을 만들지 못했어요.') + ' 직접 써 주셔도 괜찮아요.');
+        } finally {
+            busy = false;
+            $('aiLoading').hidden = true;
+            $('aiGen').disabled = false;
+        }
+    }
+    function showError(msg) { $('aiError').textContent = msg; $('aiError').hidden = false; }
+
+    $('aiGen').addEventListener('click', generate);
+    $('aiRetry').addEventListener('click', generate);
+    $('aiApply').addEventListener('click', () => {
+        $('description').value = $('aiResult').value;
+        if (!$('title').value.trim()) $('title').value = $('aiName').value.trim();
+        dlg.close();
+        $('description').focus();
+    });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${room.peerName})}"></head>
+<body>
+<div class="app narrow room">
+    <header th:replace="~{fragments/layout :: appBar(${room.peerName}, '/chat')}"></header>
+
+    <!-- 거래 상품 정보: 채팅방 위에 항상 고정 -->
+    <div class="product-pin">
+        <a class="pin-link" th:href="@{/products/{id}(id=${room.productId})}">
+            <span class="thumb" aria-hidden="true" th:text="${categoryIcons[room.category.name()]}">📦</span>
+            <span>
+                <b th:text="${room.productTitle}">상품명</b>
+                <span class="price-sm" th:text="${#numbers.formatInteger(room.productPrice, 0, 'COMMA') + '원'}">0원</span>
+            </span>
+        </a>
+        <form th:if="${room.iAmSeller}" th:action="@{/products/{id}/status(id=${room.productId})}" method="post" class="status-switch">
+            <input type="hidden" name="back" th:value="${'/chat/' + room.roomId}">
+            <button type="submit" name="status" value="SALE" class="chip" th:classappend="${room.productStatus.name() == 'SALE'} ? 'on'">판매중</button>
+            <button type="submit" name="status" value="RESERVED" class="chip" th:classappend="${room.productStatus.name() == 'RESERVED'} ? 'on'">예약중</button>
+            <button type="submit" name="status" value="SOLD_OUT" class="chip" th:classappend="${room.productStatus.name() == 'SOLD_OUT'} ? 'on'">거래완료</button>
+        </form>
+        <span th:unless="${room.iAmSeller}" class="status"
+              th:classappend="${room.productStatus.name() == 'SALE'} ? 'sale' : (${room.productStatus.name() == 'RESERVED'} ? 'reserved' : 'sold')"
+              th:text="${room.productStatus.name() == 'SALE'} ? '판매중' : (${room.productStatus.name() == 'RESERVED'} ? '예약중' : '거래완료')">판매중</span>
+    </div>
+
+    <ol class="messages" id="messages">
+        <li th:each="m, st : ${room.messages}" class="msg" th:classappend="${m.mine} ? 'mine' : 'theirs'">
+            <span class="bubble" th:text="${m.content}">메시지</span>
+            <span class="msg-meta">
+                <span th:if="${m.mine && m.seen}">읽음 · </span>
+                <time th:text="${#temporals.format(m.createdAt, 'HH:mm')}">12:00</time>
+            </span>
+        </li>
+    </ol>
+    <p class="empty" th:if="${room.messages.isEmpty()}">첫 메시지를 보내 보세요.</p>
+
+    <form class="composer" th:action="@{/chat/{id}/messages(id=${room.roomId})}" method="post">
+        <input class="input pill" name="content" maxlength="1000" placeholder="메시지를 입력하세요" autocomplete="off" aria-label="메시지" required>
+        <button class="send" type="submit" aria-label="보내기">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+    </form>
+</div>
+<script>window.scrollTo(0, document.body.scrollHeight);</script>
+</body>
+</html>

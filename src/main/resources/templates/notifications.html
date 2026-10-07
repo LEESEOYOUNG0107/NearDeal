@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('알림')}"></head>
+<body>
+<div class="app">
+    <header class="topbar">
+        <h1 class="page-title">알림</h1>
+        <form class="spacer" th:action="@{/notifications/read-all}" method="post" th:if="${unreadNotices > 0}">
+            <button type="submit" class="text-btn">모두 읽음</button>
+        </form>
+    </header>
+
+    <ul class="list">
+        <li th:each="n : ${notices}">
+            <a class="notice-row" th:href="@{/notifications/{id}/go(id=${n.id})}" th:classappend="${!n.seen} ? 'unread'">
+                <!-- 종류별 아이콘 색: 찜 = 코랄, 채팅 = 초록, 거래 상태 = 앰버 -->
+                <span class="kind" th:classappend="${n.type.name() == 'FAVORITE'} ? 'fav' : (${n.type.name() == 'CHAT_MESSAGE'} ? 'chat' : 'status')" aria-hidden="true">
+                    <svg class="icon" th:if="${n.type.name() == 'FAVORITE'}" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+                    <svg class="icon" th:if="${n.type.name() == 'CHAT_MESSAGE'}" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg>
+                    <svg class="icon" th:if="${n.type.name() == 'STATUS_CHANGE'}" viewBox="0 0 24 24"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg>
+                </span>
+                <span class="notice-main">
+                    <span class="kind-label" th:text="${n.type.name() == 'FAVORITE'} ? '찜' : (${n.type.name() == 'CHAT_MESSAGE'} ? '새 채팅' : '거래 상태')">찜</span>
+                    <span class="notice-text" th:text="${n.message}">알림 내용</span>
+                    <small th:text="${T(kr.hs.study.carrot.util.TimeAgo).of(n.createdAt)}">방금 전</small>
+                </span>
+                <span class="dot" th:if="${!n.seen}" aria-label="읽지 않음"></span>
+            </a>
+        </li>
+    </ul>
+    <p class="empty" th:if="${notices.isEmpty()}">아직 알림이 없어요.<br>상품이 찜되거나 채팅이 오면 여기에 알려 드려요.</p>
+
+    <nav th:replace="~{fragments/layout :: bottomNav('notice')}"></nav>
+</div>
+</body>
+</html>

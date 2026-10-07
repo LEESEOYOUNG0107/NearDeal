@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('채팅')}"></head>
+<body>
+<div class="app">
+    <header class="topbar"><h1 class="page-title">채팅</h1></header>
+
+    <ul class="list">
+        <li th:each="r : ${rooms}">
+            <a class="chat-row" th:href="@{/chat/{id}(id=${r.roomId})}" th:classappend="${r.unread > 0} ? 'unread'">
+                <span class="avatar" th:text="${#strings.substring(r.peerName, r.peerName.length() - 1)}">1</span>
+                <span class="chat-main">
+                    <span class="chat-top">
+                        <b th:text="${r.peerName}">사용자 2</b>
+                        <small th:text="${r.lastAt == null ? '' : T(kr.hs.study.carrot.util.TimeAgo).of(r.lastAt)}">방금 전</small>
+                    </span>
+                    <span class="chat-product" th:text="${r.productTitle}">상품명</span>
+                    <span class="chat-last" th:text="${r.lastMessage}">마지막 메시지</span>
+                </span>
+                <span class="thumb" th:classappend="${r.productStatus.name() == 'SOLD_OUT'} ? 'sold'" aria-hidden="true"
+                      th:text="${categoryIcons[r.category.name()]}">📦</span>
+                <span class="count" th:if="${r.unread > 0}" th:text="${r.unread}">1</span>
+            </a>
+        </li>
+    </ul>
+    <p class="empty" th:if="${rooms.isEmpty()}">아직 대화가 없어요.<br>마음에 드는 상품에서 채팅을 시작해 보세요.</p>
+
+    <nav th:replace="~{fragments/layout :: bottomNav('chat')}"></nav>
+</div>
+</body>
+</html>

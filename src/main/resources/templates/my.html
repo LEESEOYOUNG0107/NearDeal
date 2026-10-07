@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('나의 NearDeal')}"></head>
+<body>
+<div class="app narrow">
+    <header class="topbar"><h1 class="page-title">나의 NearDeal</h1></header>
+
+    <section class="profile">
+        <span class="avatar lg" th:text="${#strings.substring(meName, meName.length() - 1)}">1</span>
+        <div><b th:text="${meName}">사용자 1</b></div>
+    </section>
+
+    <section class="stats">
+        <a th:href="@{/my/products}"><b th:text="${sellingCount}">0</b><span>판매 상품</span></a>
+        <a th:href="@{/my/favorites}"><b th:text="${favoriteCount}">0</b><span>찜한 상품</span></a>
+        <a th:href="@{/my/trades(tab='sell', filter='done')}"><b th:text="${soldCount}">0</b><span>거래 완료</span></a>
+    </section>
+
+    <ul class="menu">
+        <li><a th:href="@{/my/products}">판매 상품<span>›</span></a></li>
+        <li><a th:href="@{/my/favorites}">관심 상품<span>›</span></a></li>
+        <li><a th:href="@{/my/trades}">거래 내역<span>›</span></a></li>
+        <li><a th:href="@{/my/neighborhood}">내 동네 설정<span th:text="${activeRegion != null} ? ${activeRegion + ' ›'} : '›'">›</span></a></li>
+        <li><span class="off">알림 설정<small>준비 중</small></span></li>
+        <li><span class="off">설정<small>준비 중</small></span></li>
+    </ul>
+
+    <form class="logout" th:action="@{/logout}" method="post">
+        <button type="submit" class="btn ghost block">로그아웃</button>
+    </form>
+
+    <nav th:replace="~{fragments/layout :: bottomNav('my')}"></nav>
+</div>
+</body>
+</html>

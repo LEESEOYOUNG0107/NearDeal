@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>상품</title>
+</head>
+<body>
+    <nav style="display:flex; flex-wrap:wrap; white-space:nowrap; gap:12px; align-items:center; padding:8px 0; border-bottom:1px solid #ccc; margin-bottom:16px;">
+        <a th:href="@{/}" style="text-decoration:none; color:inherit;"><strong>NearDeal</strong></a>
+        <form th:action="@{/products}" method="get" style="margin:0;">
+            <input type="text" name="keyword" th:value="${condition.keyword}" placeholder="상품 검색">
+            <button type="submit">검색</button>
+        </form>
+        <button type="button" disabled title="준비 중">찜</button>
+        <button type="button" disabled title="준비 중">마이페이지</button>
+        <span style="margin-left:auto; display:flex; gap:8px;">
+            <button type="button" disabled title="준비 중">로그인</button>
+            <button type="button" disabled title="준비 중">회원가입</button>
+        </span>
+    </nav>
+
+    <h1>상품 등록</h1>
+    <form method="post" th:action="@{/products}">
+        <div>상품명: <input type="text" name="title" required></div>
+        <div>가격: <input type="number" name="price" required></div>
+        <div>
+            카테고리:
+            <select name="category">
+                <option th:each="c : ${categories}" th:value="${c}" th:text="${c}"></option>
+            </select>
+        </div>
+        <div>설명: <input type="text" name="description" required></div>
+        <div>지역: <input type="text" name="region" required></div>
+        <button type="submit">등록</button>
+    </form>
+
+    <h1>상품 목록</h1>
+    <table border="1" cellpadding="4">
+        <tr>
+            <th>ID</th>
+            <th>상품명</th>
+            <th>가격</th>
+            <th>카테고리</th>
+            <th>지역</th>
+            <th>상태</th>
+            <th>등록일</th>
+        </tr>
+        <tr th:each="p : ${products}">
+            <td th:text="${p.id}"></td>
+            <td th:text="${p.title}"></td>
+            <td th:text="${p.price}"></td>
+            <td th:text="${p.category}"></td>
+            <td th:text="${p.region}"></td>
+            <td th:text="${p.status}"></td>
+            <td th:text="${#temporals.format(p.createdAt, 'yy.MM.dd')}"></td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('관심 상품')}"></head>
+<body>
+<div class="app">
+    <header th:replace="~{fragments/layout :: appBar('관심 상품', '/my')}"></header>
+    <section class="section">
+        <div class="grid" th:if="${!latest.isEmpty()}">
+            <th:block th:each="p : ${latest}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></th:block>
+        </div>
+        <p class="empty" th:if="${latest.isEmpty()}">아직 찜한 상품이 없어요.<br>마음에 드는 상품의 하트를 눌러 보세요.</p>
+    </section>
+    <nav th:replace="~{fragments/layout :: bottomNav('my')}"></nav>
+</div>
+</body>
+</html>

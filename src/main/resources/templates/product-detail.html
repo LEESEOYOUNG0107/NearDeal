@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${p.title})}"></head>
+<body>
+<div class="app narrow">
+    <header th:replace="~{fragments/layout :: appBar('상품 상세', '/')}"></header>
+
+    <div class="gallery-wrap" th:if="${!images.isEmpty()}">
+        <div class="gallery" id="gallery" tabindex="0" aria-label="상품 사진">
+            <img th:each="f, st : ${images}" th:src="@{/uploads/{f}(f=${f})}" th:alt="${p.title + ' 사진 ' + (st.index + 1)}">
+        </div>
+        <span class="gallery-count" id="galleryCount" th:if="${images.size() > 1}" th:text="${'1/' + images.size()}">1/3</span>
+    </div>
+    <div class="hero" th:if="${images.isEmpty()}" aria-hidden="true" th:text="${categoryIcons[p.category.name()]}">📦</div>
+
+    <a class="seller-row" href="#">
+        <span class="avatar" th:text="${#strings.substring(sellerName, sellerName.length() - 1)}">1</span>
+        <span>
+            <b th:text="${sellerName}">사용자 1</b>
+            <small th:text="${p.region}">성수동</small>
+        </span>
+    </a>
+
+    <section class="detail">
+        <span class="status" th:classappend="${p.status.name() == 'SALE'} ? 'sale' : (${p.status.name() == 'RESERVED'} ? 'reserved' : 'sold')"
+              th:text="${p.status.name() == 'SALE'} ? '판매중' : (${p.status.name() == 'RESERVED'} ? '예약중' : '거래완료')">판매중</span>
+        <h1 th:text="${p.title}">상품명</h1>
+        <p class="meta" th:text="${categoryLabels[p.category.name()] + ' · ' + T(kr.hs.study.carrot.util.TimeAgo).of(p.createdAt)}">카테고리 · 방금 전</p>
+        <p class="desc" th:text="${p.description}">설명</p>
+        <p class="meta">조회 <span th:text="${p.viewCount}">0</span></p>
+
+        <h2>거래 희망 장소</h2>
+        <span class="chip region-chip" th:text="${p.region}">성수동</span>
+
+    </section>
+
+    <div class="sticky-bar action-bar">
+        <div class="left">
+            <form class="heart-form" th:action="@{/products/{id}/favorite(id=${p.id})}" method="post">
+                <button type="submit" class="heart" th:classappend="${favIds.contains(p.id)} ? 'on'"
+                        th:attr="aria-pressed=${favIds.contains(p.id)}, aria-label=${favIds.contains(p.id)} ? '찜 해제' : '찜하기'">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+                </button>
+            </form>
+            <div>
+                <span class="price" th:text="${#numbers.formatInteger(p.price, 0, 'COMMA') + '원'}">0원</span><br>
+                <span class="fav-count" th:text="${favCounts.getOrDefault(p.id, 0L)}">0</span>
+                <span class="fav-label">명이 찜했어요</span>
+            </div>
+        </div>
+        <!-- 구매자: 채팅 시작 -->
+        <form th:if="${!mine}" th:action="@{/chat/start/{id}(id=${p.id})}" method="post">
+            <button type="submit" class="btn primary" th:disabled="${p.status.name() == 'SOLD_OUT'}"
+                    th:text="${p.status.name() == 'SOLD_OUT'} ? '거래가 끝난 상품이에요' : '채팅하기'">채팅하기</button>
+        </form>
+        <!-- 판매자: 거래 상태 변경 -->
+        <form th:if="${mine}" th:action="@{/products/{id}/status(id=${p.id})}" method="post" class="status-switch" aria-label="거래 상태 변경">
+            <button type="submit" name="status" value="SALE" class="chip" th:classappend="${p.status.name() == 'SALE'} ? 'on'">판매중</button>
+            <button type="submit" name="status" value="RESERVED" class="chip" th:classappend="${p.status.name() == 'RESERVED'} ? 'on'">예약중</button>
+            <button type="submit" name="status" value="SOLD_OUT" class="chip" th:classappend="${p.status.name() == 'SOLD_OUT'} ? 'on'">거래완료</button>
+        </form>
+    </div>
+</div>
+<script>
+(function () {
+    const g = document.getElementById('gallery'), c = document.getElementById('galleryCount');
+    if (g && c) g.addEventListener('scroll', () => {
+        c.textContent = (Math.round(g.scrollLeft / g.clientWidth) + 1) + '/' + g.children.length;
+    }, {passive: true});
+})();
+</script>
+</body>
+</html>

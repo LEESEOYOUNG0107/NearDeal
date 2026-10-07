@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('검색')}"></head>
+<body>
+<div class="app">
+    <header class="appbar">
+        <a class="icon-btn" th:href="@{/}" aria-label="뒤로"><svg class="icon" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></a>
+        <form class="search grow" th:action="@{/search}" method="get" role="search">
+            <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" name="keyword" th:value="${keyword}" placeholder="어떤 물건을 찾으세요?" aria-label="상품 검색" th:attrappend="autofocus=${!searched} ? 'autofocus'">
+            <input type="hidden" name="category" th:value="${category}" th:if="${category != null}">
+            <input type="hidden" name="minPrice" th:value="${minPrice}" th:if="${minPrice != null}">
+            <input type="hidden" name="maxPrice" th:value="${maxPrice}" th:if="${maxPrice != null}">
+            <input type="hidden" name="status" th:value="${status}" th:if="${status != null}">
+            <input type="hidden" name="region" th:value="${region}" th:if="${region != null}">
+        </form>
+    </header>
+
+    <!-- 검색 전: 최근 검색어, 추천 검색어 -->
+    <div th:if="${!searched}">
+        <section class="section" th:if="${!recent.isEmpty()}">
+            <div class="row-between">
+                <h2>최근 검색어</h2>
+                <form th:action="@{/search/recent/clear}" method="post"><button type="submit" class="text-btn">전체 삭제</button></form>
+            </div>
+            <div class="chips">
+                <a class="chip" th:each="w : ${recent}" th:href="@{/search(keyword=${w})}" th:text="${w}">아이패드</a>
+            </div>
+        </section>
+        <section class="section">
+            <h2>추천 검색어</h2>
+            <div class="chips">
+                <a class="chip" th:each="w : ${suggested}" th:href="@{/search(keyword=${w})}" th:text="${w}">자전거</a>
+            </div>
+        </section>
+        <section class="section">
+            <h2>카테고리로 찾기</h2>
+            <div class="chips">
+                <a class="chip" th:each="c : ${categories}" th:href="@{/search(category=${c})}"
+                   th:text="${categoryIcons[c.name()] + ' ' + categoryLabels[c.name()]}">카테고리</a>
+            </div>
+        </section>
+    </div>
+
+    <!-- 검색 후: 필터 칩, 정렬, 결과 -->
+    <div th:if="${searched}">
+        <div class="scroller filters">
+            <button type="button" class="chip" id="openFilter">
+                <svg class="icon sm" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>필터
+            </button>
+            <a class="chip on" th:each="c : ${chips}" th:href="${c.removeHref}" th:attr="aria-label=${c.label + ' 해제'}">
+                <span th:text="${c.label}">필터</span> ✕
+            </a>
+        </div>
+
+        <div class="meta-bar">
+            <span><b th:text="${results.size()}">0</b>개의 상품</span>
+            <form th:action="@{/search}" method="get">
+                <input type="hidden" name="keyword" th:value="${keyword}" th:if="${keyword != null}">
+                <input type="hidden" name="category" th:value="${category}" th:if="${category != null}">
+                <input type="hidden" name="minPrice" th:value="${minPrice}" th:if="${minPrice != null}">
+                <input type="hidden" name="maxPrice" th:value="${maxPrice}" th:if="${maxPrice != null}">
+                <input type="hidden" name="status" th:value="${status}" th:if="${status != null}">
+                <input type="hidden" name="region" th:value="${region}" th:if="${region != null}">
+                <select class="sort" name="sort" aria-label="정렬" onchange="this.form.submit()">
+                    <option value="latest" th:selected="${sort == 'latest'}">최신순</option>
+                    <option value="priceAsc" th:selected="${sort == 'priceAsc'}">낮은 가격순</option>
+                    <option value="priceDesc" th:selected="${sort == 'priceDesc'}">높은 가격순</option>
+                    <option value="popular" th:selected="${sort == 'popular'}">인기순</option>
+                </select>
+            </form>
+        </div>
+
+        <section class="section tight">
+            <div class="grid rows" th:if="${!results.isEmpty()}">
+                <th:block th:each="p : ${results}"><div th:replace="~{fragments/layout :: productCard(${p})}"></div></th:block>
+            </div>
+            <div class="empty" th:if="${results.isEmpty()}">
+                <p>찾는 상품이 없어요.<br>검색어나 필터를 바꿔 보세요.</p>
+                <a class="btn ghost" th:href="@{/search(keyword=${keyword})}" th:if="${!chips.isEmpty()}">필터 초기화</a>
+            </div>
+        </section>
+    </div>
+
+    <a th:replace="~{fragments/layout :: fab}"></a>
+    <nav th:replace="~{fragments/layout :: bottomNav('home')}"></nav>
+</div>
+
+<!-- 필터 시트: 카테고리 · 가격 · 거래 상태 · 지역 -->
+<dialog id="filterDialog" class="sheet" aria-labelledby="filterTitle">
+    <form th:action="@{/search}" method="get">
+        <div class="sheet-head">
+            <h2 id="filterTitle">필터</h2>
+            <button type="button" class="icon-btn" id="closeFilter" aria-label="닫기">✕</button>
+        </div>
+        <input type="hidden" name="keyword" th:value="${keyword}" th:if="${keyword != null}">
+        <input type="hidden" name="sort" th:value="${sort}">
+
+        <div class="field">
+            <span class="label" id="fCat">카테고리</span>
+            <div class="chips" role="radiogroup" aria-labelledby="fCat">
+                <label class="choice"><input type="radio" name="category" value="" th:checked="${category == null}"><span>전체</span></label>
+                <label class="choice" th:each="c : ${categories}">
+                    <input type="radio" name="category" th:value="${c}" th:checked="${category == c}"><span th:text="${categoryLabels[c.name()]}">카테고리</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="field">
+            <span class="label">가격</span>
+            <div class="price-range">
+                <input class="input" type="number" inputmode="numeric" min="0" name="minPrice" id="fMin" th:value="${minPrice}" placeholder="최소" aria-label="최소 가격">
+                <span>~</span>
+                <input class="input" type="number" inputmode="numeric" min="0" name="maxPrice" id="fMax" th:value="${maxPrice}" placeholder="최대" aria-label="최대 가격">
+            </div>
+            <div class="chips">
+                <button type="button" class="chip quick" data-max="10000">1만원 이하</button>
+                <button type="button" class="chip quick" data-max="50000">5만원 이하</button>
+                <button type="button" class="chip quick" data-max="100000">10만원 이하</button>
+                <button type="button" class="chip quick" data-min="100000">10만원 이상</button>
+            </div>
+        </div>
+
+        <div class="field">
+            <span class="label" id="fStatus">거래 상태</span>
+            <div class="chips" role="radiogroup" aria-labelledby="fStatus">
+                <label class="choice"><input type="radio" name="status" value="" th:checked="${status == null}"><span>전체</span></label>
+                <label class="choice"><input type="radio" name="status" value="SALE" th:checked="${status != null and status.name() == 'SALE'}"><span>판매중</span></label>
+                <label class="choice"><input type="radio" name="status" value="RESERVED" th:checked="${status != null and status.name() == 'RESERVED'}"><span>예약중</span></label>
+                <label class="choice"><input type="radio" name="status" value="SOLD_OUT" th:checked="${status != null and status.name() == 'SOLD_OUT'}"><span>거래완료</span></label>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="fRegion">지역</label>
+            <input class="input" id="fRegion" name="region" maxlength="50" th:value="${region != null} ? ${region} : ${activeRegion}" placeholder="예) 성수동">
+        </div>
+
+        <div class="two">
+            <a class="btn ghost" th:href="@{/search(keyword=${keyword})}">초기화</a>
+            <button type="submit" class="btn primary">적용하기</button>
+        </div>
+    </form>
+</dialog>
+
+<script>
+(function () {
+    const dlg = document.getElementById('filterDialog');
+    const open = document.getElementById('openFilter');
+    if (open) open.addEventListener('click', () => dlg.showModal());
+    document.getElementById('closeFilter').addEventListener('click', () => dlg.close());
+    document.querySelectorAll('.quick').forEach((b) => b.addEventListener('click', () => {
+        document.getElementById('fMin').value = b.dataset.min || '';
+        document.getElementById('fMax').value = b.dataset.max || '';
+    }));
+})();
+</script>
+</body>
+</html>

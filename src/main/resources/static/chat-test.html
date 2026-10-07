@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>채팅 WebSocket 테스트</title>
+    <!-- 개발용 확인 페이지입니다. 실제 서비스 화면이 아닙니다. -->
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+</head>
+<body>
+<h1>채팅 WebSocket 테스트</h1>
+<p>회원가입한 계정 두 개(판매자, 구매자)로 탭을 두 개 열어 같은 방에 연결해 보세요. 방 ID는 <code>POST /api/chat-rooms</code>로 만든 값입니다.</p>
+<div>
+    이메일 <input id="email" size="24">
+    비밀번호 <input id="password" type="password" size="14">
+    방 ID <input id="roomId" size="4">
+    <button id="connect">로그인 후 연결</button>
+    <button id="disconnect" disabled>끊기</button>
+    <span id="state">끊김</span>
+</div>
+<div>
+    <input id="text" size="40" placeholder="메시지" disabled>
+    <button id="send" disabled>보내기</button>
+</div>
+<pre id="log" style="border:1px solid #ccc; padding:8px; min-height:200px"></pre>
+<script>
+    const $ = (id) => document.getElementById(id);
+    const log = (t) => { $('log').textContent += t + '\n'; };
+    let client;
+
+    $('connect').onclick = async () => {
+        const roomId = $('roomId').value.trim();
+        $('log').textContent = '';
+
+        // 1) 로그인해서 토큰을 받는다
+        const login = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: $('email').value.trim(), password: $('password').value }),
+        });
+        if (!login.ok) { log(`로그인 실패: HTTP ${login.status}`); return; }
+        const { accessToken, member } = await login.json();
+        const auth = `Bearer ${accessToken}`;
+        log(`로그인 성공: 회원 ${member.id} (${member.nickname})`);
+
+        // 2) REST로 지난 대화 불러오기
+        const res = await fetch(`/api/chat-rooms/${roomId}/messages`, { headers: { Authorization: auth } });
+        if (!res.ok) { log(`지난 대화 조회 실패: HTTP ${res.status}`); return; }
+        (await res.json()).forEach((m) => log(`[이전] 회원 ${m.senderId}: ${m.content}`));
+
+        // 3) WebSocket 연결(토큰으로 인증) 후 이 방만 구독
+        client = new StompJs.Client({
+            brokerURL: `ws://${location.host}/ws-chat`,
+            connectHeaders: { Authorization: auth },
+            reconnectDelay: 0,
+            onConnect: () => {
+                setConnected(true);
+                client.subscribe(`/topic/chat-rooms/${roomId}`, (f) => {
+                    const m = JSON.parse(f.body);
+                    log(`[실시간] 회원 ${m.senderId}: ${m.content}`);
+                });
+                client.subscribe('/user/queue/errors', (f) => log(`[오류] ${f.body}`));
+            },
+            onStompError: (f) => { log(`[연결 거부] ${f.headers.message}`); setConnected(false); },
+            onWebSocketClose: () => setConnected(false),
+        });
+        client.activate();
+    };
+
+    $('send').onclick = () => {
+        client.publish({ destination: `/app/chat-rooms/${$('roomId').value.trim()}/messages`, body: JSON.stringify({ content: $('text').value }) });
+        $('text').value = '';
+    };
+    $('text').onkeydown = (e) => { if (e.key === 'Enter') $('send').click(); };
+    $('disconnect').onclick = () => client && client.deactivate();
+
+    function setConnected(on) {
+        $('state').textContent = on ? '연결됨' : '끊김';
+        $('connect').disabled = on; $('disconnect').disabled = !on;
+        $('text').disabled = !on; $('send').disabled = !on;
+    }
+</script>
+</body>
+</html>

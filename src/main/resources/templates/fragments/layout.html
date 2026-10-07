@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">NearDeal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/neardeal.css}">
+    <link rel="stylesheet" th:href="@{/css/screens.css}">
+    <script th:src="@{/js/heart.js}" defer></script>
+</head>
+<body>
+<nav th:fragment="bottomNav(active)" class="bottom-nav" aria-label="주요 메뉴">
+    <a th:href="@{/}" th:classappend="${active == 'home'} ? 'on'" th:attr="aria-current=${active == 'home'} ? 'page'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>홈
+    </a>
+    <a th:href="@{/chat}" th:classappend="${active == 'chat'} ? 'on'" th:attr="aria-current=${active == 'chat'} ? 'page'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M5 5h14v10H9l-4 4z"/></svg>채팅
+    </a>
+    <a th:href="@{/notifications}" th:classappend="${active == 'notice'} ? 'on'" th:attr="aria-current=${active == 'notice'} ? 'page'">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l2 2H4zM10 21h4"/></svg>알림
+        <span class="count" th:if="${unreadNotices > 0}" th:text="${unreadNotices > 99 ? '99+' : unreadNotices}">1</span>
+    </a>
+    <a th:href="@{/my}" th:classappend="${active == 'my'} ? 'on'" th:attr="aria-current=${active == 'my'} ? 'page'">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>나의 NearDeal
+    </a>
+</nav>
+
+<header th:fragment="appBar(title, back)" class="appbar">
+    <a class="icon-btn" th:href="${back}" aria-label="뒤로">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+    </a>
+    <h1 th:text="${title}">제목</h1>
+</header>
+
+<a th:fragment="fab" class="fab" th:href="@{/products/new}">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>판매하기
+</a>
+
+<!-- p: ProductListResponse -->
+<!-- 하트 버튼은 링크 밖(형제)에 둔다: a 안에 button 을 넣을 수 없음 -->
+<div th:fragment="productCard(p)" class="card-wrap" th:classappend="${p.status.name() == 'SOLD_OUT'} ? 'sold'">
+    <a class="card" th:href="@{/products/{id}(id=${p.id})}">
+        <div class="photo">
+            <img th:if="${thumbs.get(p.id) != null}" th:src="@{/uploads/{f}(f=${thumbs.get(p.id)})}" alt="" loading="lazy">
+            <span th:if="${thumbs.get(p.id) == null}" aria-hidden="true" th:text="${categoryIcons[p.category.name()]}">📦</span>
+            <span class="badge" th:if="${p.status.name() == 'RESERVED'}">예약중</span>
+        </div>
+        <div class="title" th:text="${p.title}">상품명</div>
+        <div class="meta" th:text="${p.region + ' · ' + T(kr.hs.study.carrot.util.TimeAgo).of(p.createdAt)}">지역 · 방금 전</div>
+        <div class="price" th:text="${#numbers.formatInteger(p.price, 0, 'COMMA') + '원'}">0원</div>
+        <div class="stats">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+            <span class="fav-count" th:text="${favCounts.getOrDefault(p.id, 0L)}">0</span>
+        </div>
+    </a>
+    <form class="heart-form" th:action="@{/products/{id}/favorite(id=${p.id})}" method="post">
+        <button type="submit" class="heart" th:classappend="${favIds.contains(p.id)} ? 'on'"
+                th:attr="aria-pressed=${favIds.contains(p.id)}, aria-label=${favIds.contains(p.id)} ? '찜 해제' : '찜하기'">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+        </button>
+    </form>
+</div>
+</body>
+</html>
