@@ -1,5 +1,6 @@
 package kr.hs.study.carrot.service;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import kr.hs.study.carrot.dto.request.ProductCreateRequest;
 import kr.hs.study.carrot.dto.request.ProductSearchCondition;
@@ -16,8 +17,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.server.ResponseStatusException;
 
+// @Validated: REST(@Valid)를 거치지 않는 Thymeleaf 폼 경로도 같은 입력 규칙(길이/가격 상한)으로 막는다
+@Validated
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -31,11 +35,18 @@ public class ProductService {
                 .toList();
     }
 
+    private static final char LIKE_ESCAPE = '\\';
+
+    // 검색어의 % _ 가 와일드카드로 동작하지 않게 글자 그대로 찾는다
+    private static String escapeLike(String s) {
+        return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
     private Specification<Product> toSpecification(ProductSearchCondition c) {
         Specification<Product> spec = (root, query, cb) -> cb.conjunction();
         if (StringUtils.hasText(c.keyword())) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("title")), "%" + c.keyword().toLowerCase() + "%"));
+                    cb.like(cb.lower(root.get("title")), "%" + escapeLike(c.keyword().toLowerCase()) + "%", LIKE_ESCAPE));
         }
         if (c.category() != null) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("category"), c.category()));
@@ -50,7 +61,7 @@ public class ProductService {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), c.status()));
         }
         if (StringUtils.hasText(c.region())) {
-            spec = spec.and((root, query, cb) -> cb.like(root.get("region"), "%" + c.region() + "%"));
+            spec = spec.and((root, query, cb) -> cb.like(root.get("region"), "%" + escapeLike(c.region()) + "%", LIKE_ESCAPE));
         }
         return spec;
     }
@@ -69,7 +80,7 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductResponse updateProduct(Long productId, ProductUpdateRequest request, Long userId) {
+    public ProductResponse updateProduct(Long productId, @Valid ProductUpdateRequest request, Long userId) {
         Product product = findOwnedProduct(productId, userId);
         product.update(request.title(), request.price(), request.category(), request.description(), request.region());
         return ProductResponse.from(product);
@@ -105,7 +116,7 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductResponse createProduct(ProductCreateRequest request, Long sellerId) {
+    public ProductResponse createProduct(@Valid ProductCreateRequest request, Long sellerId) {
         Product product = Product.builder()
                 .sellerId(sellerId)
                 .title(request.title())

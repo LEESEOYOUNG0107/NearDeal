@@ -3,13 +3,12 @@ package kr.hs.study.carrot.controller;
 import java.util.Map;
 import java.util.Set;
 import kr.hs.study.carrot.service.FavoriteService;
+import kr.hs.study.carrot.service.NeighborhoodService;
 import kr.hs.study.carrot.service.NotificationService;
 import kr.hs.study.carrot.service.ProductImageService;
-import kr.hs.study.carrot.util.CookieList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.ModelAttribute;
 
 // 모든 뷰에서 쓰는 카테고리 라벨/아이콘, 내 찜 목록, 상품별 찜 수, 현재 동네, 안 읽은 알림 수
@@ -28,6 +27,7 @@ public class ViewModelAdvice {
     private final FavoriteService favoriteService;
     private final NotificationService notificationService;
     private final ProductImageService productImageService;
+    private final NeighborhoodService neighborhoodService;
 
     @ModelAttribute("categoryLabels")
     Map<String, String> categoryLabels() {
@@ -57,9 +57,8 @@ public class ViewModelAdvice {
 
     // 내 동네 목록의 첫 번째가 현재 동네. 없으면 null(전체 동네)
     @ModelAttribute("activeRegion")
-    String activeRegion(@CookieValue(name = NeighborhoodViewController.COOKIE, required = false) String regions) {
-        var list = CookieList.read(regions);
-        return list.isEmpty() ? null : list.get(0);
+    String activeRegion(@RequestAttribute("uid") Long uid) {
+        return neighborhoodService.current(uid);
     }
 
     @ModelAttribute("unreadNotices")

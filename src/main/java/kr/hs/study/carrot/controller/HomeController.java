@@ -6,13 +6,13 @@ import kr.hs.study.carrot.dto.request.ProductSearchCondition;
 import kr.hs.study.carrot.dto.response.ProductListResponse;
 import kr.hs.study.carrot.entity.Category;
 import kr.hs.study.carrot.service.FavoriteService;
+import kr.hs.study.carrot.service.NeighborhoodService;
 import kr.hs.study.carrot.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import kr.hs.study.carrot.util.CookieList;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
@@ -21,13 +21,13 @@ public class HomeController {
 
     private final ProductService productService;
     private final FavoriteService favoriteService;
+    private final NeighborhoodService neighborhoodService;
 
     @GetMapping("/")
     public String home(@RequestParam(required = false) Category category,
-                       @CookieValue(name = NeighborhoodViewController.COOKIE, required = false) String regions, Model model) {
+                       @RequestAttribute("uid") Long uid, Model model) {
         // 현재 동네(내 동네 목록의 첫 번째)가 있으면 그 동네 상품만 보여 준다
-        var mine = CookieList.read(regions);
-        String region = mine.isEmpty() ? null : mine.get(0);
+        String region = neighborhoodService.current(uid);
         List<ProductListResponse> latest = productService.getProducts(
                 new ProductSearchCondition(null, category, null, null, null, region));
         // 인기 상품: 찜 수 → 조회수 순 상위 6개

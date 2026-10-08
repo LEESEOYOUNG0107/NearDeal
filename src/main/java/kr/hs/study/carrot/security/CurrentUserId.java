@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@io.swagger.v3.oas.annotations.Parameter(hidden = true)
 @AuthenticationPrincipal(expression = "T(java.lang.Long).valueOf(subject)")
 public @interface CurrentUserId {
 }

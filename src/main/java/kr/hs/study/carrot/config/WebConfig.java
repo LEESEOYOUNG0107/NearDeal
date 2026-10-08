@@ -18,7 +18,7 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(viewAuthInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/login", "/signup", "/logout", "/css/**", "/js/**", "/uploads/**", "/api/**", "/ws-chat/**", "/error", "/favicon.ico");
+                .excludePathPatterns("/login", "/signup", "/logout", "/css/**", "/js/**", "/uploads/**", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/api/**", "/ws-chat/**", "/error", "/favicon.ico");
     }
 
     // 업로드한 사진을 /uploads/{파일명} 으로 제공한다. 파일명이 UUID 라 주소를 아는 사람만 볼 수 있다

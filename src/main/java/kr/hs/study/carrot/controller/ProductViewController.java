@@ -1,6 +1,7 @@
 package kr.hs.study.carrot.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.util.List;
 import java.util.regex.Pattern;
 import kr.hs.study.carrot.dto.request.ProductCreateRequest;
@@ -51,6 +52,7 @@ public class ProductViewController {
     public String form(@RequestParam(required = false) String error, Model model) {
         model.addAttribute("categories", Category.values());
         if ("size".equals(error)) model.addAttribute("error", "사진 용량이 너무 커요. 한 장당 5MB 이하, 한 번에 55MB 이하로 올려 주세요.");
+        if ("invalid".equals(error)) model.addAttribute("error", "입력값이 너무 길거나 올바르지 않아요. 제목 100자, 지역 50자, 설명 3000자, 가격 9,999,999,999원 이하로 입력해 주세요.");
         return "product-form";
     }
 
@@ -90,6 +92,11 @@ public class ProductViewController {
     }
 
     // 요청 전체 용량이 설정(spring.servlet.multipart)을 넘으면 컨트롤러에 오기 전에 실패하므로 여기서 받는다
+    @ExceptionHandler(ConstraintViolationException.class)
+    public String invalid() {
+        return "redirect:/products/new?error=invalid";
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public String tooLarge() {
         return "redirect:/products/new?error=size";

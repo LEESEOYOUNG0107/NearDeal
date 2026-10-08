@@ -4,10 +4,12 @@ import java.time.LocalDateTime;
 import kr.hs.study.carrot.entity.Category;
 import kr.hs.study.carrot.entity.Product;
 import kr.hs.study.carrot.entity.ProductStatus;
+import kr.hs.study.carrot.service.ChatService;
 
 public record ProductResponse(
         Long id,
         Long sellerId,
+        String sellerNickname,
         String title,
         Long price,
         Category category,
@@ -21,6 +23,7 @@ public record ProductResponse(
         return new ProductResponse(
                 product.getId(),
                 product.getSellerId(),
+                ChatService.nameOf(product.getSellerId()),
                 product.getTitle(),
                 product.getPrice(),
                 product.getCategory(),

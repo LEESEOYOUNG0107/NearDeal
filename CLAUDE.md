@@ -33,6 +33,9 @@ Tests use JUnit 5 (`useJUnitPlatform()` is configured in `build.gradle`).
 - Data: Spring Data JPA + Spring JDBC, running against Oracle (`ojdbc17` is the only JDBC driver
   on the classpath — this is an Oracle-backed project, not H2/Postgres/MySQL)
 - Security: Spring Security (`spring-boot-starter-security`)
+- Errors: `GlobalExceptionHandler` (RestController advice) returns `{status,error,message,path[,fieldErrors]}` for every `/api/**` failure and never exposes stack traces/SQL; `spring.web.error.include-*=never` covers the rest (Boot 4 key names). Input limits live on the request DTOs and `ProductService` is `@Validated` so the Thymeleaf form path is covered too. `SWAGGER_ENABLED=false` hides Swagger.
+- Docs: `docs/INTEGRATION_TEST_CHECKLIST.md` (user-flow test table), `docs/PORTFOLIO.md`, and `docs/e2e-scenario.mjs` (run `node docs/e2e-scenario.mjs [baseUrl]` against a running server; creates temp members e2e*@example.com).
+- API docs: springdoc-openapi (`springdoc-openapi-starter-webmvc-ui` 3.1.1). Swagger UI at `/swagger-ui.html`, JSON at `/v3/api-docs`, limited to `/api/**` (`springdoc.paths-to-match`). Controllers carry `@Tag`/`@Operation`; public endpoints use `@SecurityRequirements`; `OpenApiConfig` defines the Bearer scheme.
 - AI: Spring AI's Google Gemini starter (`spring-ai-starter-model-google-genai`), pinned via the
   Spring AI BOM at version `2.0.1` (see `ext.springAiVersion` in `build.gradle`). Key comes from the
   `GEMINI_API_KEY` env var; code only uses `ChatClient`, so the provider can be swapped without touching Service/Controller
@@ -44,7 +47,11 @@ Tests use JUnit 5 (`useJUnitPlatform()` is configured in `build.gradle`).
   falling back to a random per-start key. Spring Security validates the Bearer token on every request (`SecurityConfig`);
   `/api/**` requires login except signup/login and `GET /api/products` (list/search) and `GET /api/products/{id}`.
   Controllers get the logged-in member id with `@CurrentUserId Long userId`; WebSocket authenticates on STOMP CONNECT
-  (`Authorization: Bearer ...`). The Thymeleaf pages are still open and use a dev `uid` cookie until a login page exists.
+  (`Authorization: Bearer ...`). The Thymeleaf pages log in at `/login` (JWT in the `access_token` cookie); `ViewAuthInterceptor` puts the member id in request attribute `uid`. All data (products, chat, favorites, notifications) is tied to real `member.id`s.
+
+- Neighborhoods: a member's "내 동네" (max 2, first = current) is stored in `member.neighborhoods` ("a,b"), managed by
+  `NeighborhoodService` and shared by the REST API (`/api/regions`, `/api/members/me/neighborhoods`, `GET /api/products/nearby`)
+  and the Thymeleaf pages. A product is "nearby" when `product.region` contains the neighborhood name.
 
 `application.properties` holds a local Oracle datasource (hardcoded dev credentials) and the AI settings;
 the Gemini API key is read from the `GEMINI_API_KEY` env var and must never be written into the file.

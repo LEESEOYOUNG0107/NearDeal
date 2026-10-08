@@ -35,7 +35,8 @@
         <div class="field">
             <label for="price">가격</label>
             <div class="input-wrap">
-                <input class="input" id="price" name="price" type="number" inputmode="numeric" min="1" placeholder="0" th:value="${price}" required>
+                <!-- type="number"는 칸을 선택한 채 마우스 휠/터치패드로 스크롤하면 값이 바뀌므로, 숫자만 받는 텍스트 칸을 쓴다 -->
+                <input class="input" id="price" name="price" type="text" inputmode="numeric" pattern="[0-9]+" maxlength="10" autocomplete="off" placeholder="0" th:value="${price}" required>
                 <span class="suffix">원</span>
             </div>
         </div>
@@ -145,16 +146,49 @@
         add.hidden = files.length >= MAX;
         count.textContent = files.length + '/' + MAX;
     }
+    const OK_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     input.addEventListener('change', () => {
-        let msg = '';
+        const problems = [];
         for (const f of input.files) {
-            if (files.length >= MAX) { msg = '사진은 최대 ' + MAX + '장까지 올릴 수 있어요.'; break; }
-            if (f.size > MAX_BYTES) { msg = '5MB를 넘는 사진은 제외했어요.'; continue; }
+            if (files.length >= MAX) { problems.push('사진은 최대 ' + MAX + '장까지 올릴 수 있어요.'); break; }
+            // 종류가 비어 있으면(브라우저가 모르는 형식) 통과시키고 서버가 파일 내용으로 판단한다
+            if (f.type && !OK_TYPES.includes(f.type)) { problems.push('"' + f.name + '"은(는) JPG, PNG, WEBP, GIF가 아니라서 제외했어요.'); continue; }
+            if (f.size > MAX_BYTES) { problems.push('"' + f.name + '"은(는) 5MB를 넘어서 제외했어요.'); continue; }
             files.push(f);
         }
-        hint.textContent = msg || baseHint;
+        // 제외된 사진이 있으면 빨간 안내로 눈에 띄게 알린다(작은 회색 글씨라서 놓치던 문제)
+        hint.className = problems.length ? 'form-error' : 'hint';
+        hint.setAttribute('role', problems.length ? 'alert' : 'note');
+        hint.textContent = problems.length ? problems.join(' ') : baseHint;
         sync();
         render();
+    });
+})();
+</script>
+<script>
+// 가격: 숫자만 남기고(쉼표를 넣어도 19,979 -> 19979), 0원은 막는다
+(function () {
+    const price = document.getElementById('price');
+    price.addEventListener('input', () => {
+        price.value = price.value.replace(/\D/g, '');
+        price.setCustomValidity(price.value !== '' && Number(price.value) < 1 ? '1원 이상 입력해 주세요.' : '');
+    });
+})();
+// 등록 버튼 중복 클릭 방지: 첫 제출 뒤에는 버튼을 잠가서 같은 상품이 두 번 등록되지 않게 한다
+(function () {
+    const form = document.getElementById('sellForm');
+    const btn = form.querySelector('button[type=submit]');
+    const label = btn.textContent;
+    let sent = false;
+    form.addEventListener('submit', (e) => {
+        if (sent) { e.preventDefault(); return; }
+        sent = true;
+        btn.disabled = true;
+        btn.textContent = '등록 중이에요…';
+    });
+    // 오류 화면에서 '뒤로 가기'로 돌아오면 버튼을 다시 쓸 수 있게 되돌린다
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted) { sent = false; btn.disabled = false; btn.textContent = label; }
     });
 })();
 </script>
